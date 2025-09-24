@@ -52,3 +52,86 @@ export const signup = asyncHandler(async(req, res)=>{
         new ApiResponse(200, {user: userToSent, token: accessToken}, "User signed in successfully")
     );
 });
+
+export const login = asyncHandler(async(req, res)=>{
+    // check if user exists if not throw error
+    // return the user data
+    // console.log(req.body);
+    const {email, password} = req?.body;
+    
+    if(!email || !password){
+        throw new ApiError(401, "All feilds are required");
+    }
+    const user = await User.findOne({email:email});
+    if(!user){
+        throw new ApiError(402, "User doesn't exists");
+    }
+    const isPasswordCorrect = await user.isPasswordCorrect(password);
+    if(!isPasswordCorrect){
+        throw new ApiError(403, "Invalid user password");
+    }
+    const userToSent = await User.findById(user._id).select("-password");
+
+    const accessToken = user.getAccessToken();
+
+    const options = {
+        httpOnly:false,
+        secure:true
+    };
+
+    return res.status(200).cookie("token", accessToken, options).json(
+        new ApiResponse(200, {user:userToSent, token:accessToken}, "User logged in successfully")
+    );
+});
+
+export const updateUserPic = asyncHandler(async(req, res)=>{
+    // get the user by email
+    // get the pic path
+    // upload it to cloudinary if not any pic then return error
+    // After uploading then update the user
+    
+    const {_id} = req.user;
+    const user = await User.findById(_id);
+    if(!user){
+        throw new ApiError(401, "Invalid user");
+    }
+    const userPic = req.file;
+    if(!userPic || userPic === undefined){
+        throw new ApiError(401, "User pic is required");
+    }
+    const result = await upload(userPic.path);
+    if(!result){
+        throw new ApiError(405, "Image failed to upload");
+    }
+    const updatedUser = await User.findByIdAndUpdate(user?._id, {$set:{pic:result?.url}});
+    
+    const userToSend = await User.findById(updatedUser?._id).select("-password");
+    
+    return res.status(200).json(
+        new ApiResponse(200, {updatedUser:userToSend}, "User pic updated successfully")
+    );
+
+});
+
+export const getUser = asyncHandler((req, res)=>{
+    const user = req?.user;
+    // console.log(user);
+    
+    return res.status(200).json(new ApiResponse(200, {user}, "User retrived successfully"));
+});
+
+// export const addUserEmailNums= asyncHandler((req, res)=>{
+//     const email = req.params.email;
+//     const user = User.findOne({email:email});
+//     if(!user)throw new ApiError(403, "User doesn't exists");
+
+//     let sum = 0;
+//     for(let i = 0; i<email.length; i++){
+//         if(!isNaN(email[i])){
+//             sum+=parseInt(email[i]);
+//         }
+//     }
+//     return res.status(200).json(new ApiResponse(200, {
+//         sum
+//     }, "Sum is sent!!!"));
+// });
