@@ -7,4 +7,6 @@ const router = express.Router();
 
 router.route("/create").post(upload.single("pic"), signup);
 
+router.route("/login").post(upload.none(), login);
+
 export default router;
