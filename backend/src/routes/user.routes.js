@@ -1,5 +1,5 @@
 import express from "express";
-import {  signup } from "../controllers/user.controller.js";
+import {  signup,login } from "../controllers/user.controller.js";
 import { isLoggedIn } from "../middlewares/auth.middlewares.js";
 import { upload } from "../middlewares/multer.middlewares.js";
 
