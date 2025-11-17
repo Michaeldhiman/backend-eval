@@ -98,3 +98,56 @@ export const getUsersMessages = asyncHandler(async(req, res)=>{
         new ApiResponse(200, {currUserMessages:userMessages, otherUserMessages:otherUserMessages}, "User and other user messages retrived")
     );
 });
+
+export const deleteMessage = asyncHandler(async(req, res)=>{
+    // Findthe message and check if exists
+    // Check if curr user is the owner.
+    // if he is delete the message
+    // respone the data i.e success
+    const _id = req.params?._id;
+    const message = await Message.findById(_id).populate("user");
+    if(!message){
+        throw new ApiError(403, "Invaliid message id!!!");
+    }
+    const user = req.user;
+    if(message?.user?._id?.toString()!==user?._id?.toString()){
+        throw new ApiError(401, "User is not the owner!!!");
+    }
+    const currDate = new Date();
+    if(currDate?.getTime()-message?.createdAt.getTime()>5*60*1000){
+        throw new ApiError(402, "Message is outdated to update");
+    }
+    await Message.findByIdAndUpdate(message?._id, {$set:{message:""}});
+    return res.status(200).json(
+        new ApiResponse(200, {success:true}, "message deleted successfully")
+    );
+    
+});
+
+export const updateMessage = asyncHandler(async(req, res)=>{
+    // check if message exists
+    // check if user is the owner
+    // check if message is older than 5 min
+    // update the message
+    const messageContent = req.body.message;
+    const messageId = req.params?._id;
+    const message = await Message.findById(messageId).populate("user");
+    if(!message){
+        throw new ApiError(403, "Invalid message id!!!");
+    }
+    if(message?.message === ""){
+        throw new ApiError(402, "Message is already deleted");
+    }
+    const user = req.user;
+    if(message?.user?._id?.toString()!==user?._id?.toString()){
+        throw new ApiError(401, "User is not the owner!!!");
+    }
+    const currDate = new Date();
+    if(currDate?.getTime()-message?.createdAt.getTime()>5*60*1000){
+        throw new ApiError(402, "Message is outdated to update");
+    }
+    const updatedMessage = await Message.findByIdAndUpdate(messageId, {$set:{message:messageContent}});
+    return res.status(200).json(
+        new ApiResponse(200, {message:updatedMessage, success:true}, "Message updated successfully")
+    );
+});
